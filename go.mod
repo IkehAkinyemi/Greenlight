@@ -1,3 +1,3 @@
-module github.com/greenlight
+module github.com/Greenlight
 
 go 1.19
