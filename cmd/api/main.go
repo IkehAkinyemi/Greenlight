@@ -36,18 +36,14 @@ func main() {
 		config: cfg,
 	}
 
-	// Multiplexer
-	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/healthcheck", app.healthcheckHandler)
-
-	srv := &http.Server {
+	server := &http.Server {
 		Addr: fmt.Sprintf(":%d", cfg.port),
-		Handler: mux,
+		Handler: app.routes(),
 		IdleTimeout: time.Minute,
 		ReadTimeout: 10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 
 	logger.Printf("starting %s server on port %d", cfg.env, cfg.port)
-	logger.Fatal(srv.ListenAndServe())
+	logger.Fatal(server.ListenAndServe())
 }
