@@ -38,3 +38,7 @@ func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, st
 		w.WriteHeader(500)
 	}
 }
+
+func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+}
