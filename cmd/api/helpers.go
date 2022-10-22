@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -51,7 +52,16 @@ func (app *application) writeJSON(w http.ResponseWriter, statusCode int, data en
 
 // readJSON reads/parses request body. Also handles any possible error
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
-	err := json.NewDecoder(r.Body).Decode(dst)
+	// Restrict r.Body to 1MB
+	maxBytes := 1_048_578
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
+
+	decoder := json.NewDecoder(r.Body)
+
+	//Produces error if any unknown json fields is present
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(dst)
+
 	if err != nil {
 		// types of expected errors
 		var syntaxError *json.SyntaxError
@@ -72,10 +82,22 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 			return errors.New("body must not be empty")
 		case errors.As(err, &invalidUnmarshalError):
 			panic(err)
+		case strings.HasPrefix(err.Error(), "json: unknown field "):
+			field := strings.TrimPrefix(err.Error(), "json: unknown field ")
+			return fmt.Errorf("the body contains unknown field %s", field)
+		case err.Error() == "http: request body too large":
+			return fmt.Errorf("body must not be larger than %d bytes", maxBytes)
 		default:
 			return err
 		}
 	}
 
+	//second call to Decode to ensure the request body is just on
+	// JSON value
+	err = decoder.Decode(&struct{}{})
+	if err != io.EOF {
+		return errors.New("body must contain only a single JSON")
+	}
+	
 	return nil
 }
