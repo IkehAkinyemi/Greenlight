@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -34,5 +35,18 @@ func (app *application) showMovie(w http.ResponseWriter, r *http.Request) {
 
 // createMovie maps to the "POST /v1/movies" endpoint.
 func (app *application) createMovie(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Create a new movie")
+	var movie struct{
+		Title string `json:"title"`
+		Runtime int32 `json:"runtime"`
+		Year int32 `json:"year"`
+		Genre []string `json:"genre"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&movie)
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	fmt.Fprintf(w, "%+v", movie)
 }
