@@ -1,10 +1,17 @@
 package data
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/Greenlight/internal/validator"
+	"github.com/lib/pq"
 )
+
+//MovieModel wraps the sql.DB connection pool.
+type MovieModel struct {
+	DB *sql.DB
+}
 
 type Movie struct {
 	ID int64 `json:"id"`
@@ -14,6 +21,32 @@ type Movie struct {
 	Runtime Runtime `json:"runtime,omitempty"`
 	Genres []string `json:"genre,omitempty"`
 	Year int32 `json:"year,omitempty"`
+}
+
+// Insert inserts a new movie record into the movies table.
+func (m MovieModel) Insert(movie *Movie) error {
+	stmt := `
+		INSERT INTO movies (title, year, runtime, genres)	
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, version`
+	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
+
+	return m.DB.QueryRow(stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+}
+
+// Get fetches a specific movie record with the id
+func (m MovieModel) Get(id int64) (*Movie, error) {
+	return nil, nil
+}
+
+// Update updates a record with the movie arg passed.
+func (m MovieModel) Update(movie *Movie) error {
+	return nil
+}
+
+// Delete deletes a specific movie record with the id
+func (m MovieModel) Delete(id int64) error {
+	return nil
 }
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {

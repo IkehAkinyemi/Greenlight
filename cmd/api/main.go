@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Greenlight/internal/data"
 	_ "github.com/lib/pq"
 )
 
@@ -29,6 +30,7 @@ type config struct {
 type application struct{
 	logger *log.Logger
 	config config
+	models data.Models
 }
 
 // openDB opens a connection pool
@@ -81,6 +83,7 @@ func main() {
 	app := &application{
 		logger: logger,
 		config: cfg,
+		models: data.NewModels(db),
 	}
 
 	server := &http.Server {
