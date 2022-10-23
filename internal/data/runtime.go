@@ -20,7 +20,7 @@ func (r Runtime) MarshalJSON() ([]byte, error) {
 
 	// Valid JSON is double-quoted
 	validJSON := strconv.Quote(value)
-	
+
 	return []byte(validJSON), nil
 }
 
@@ -41,7 +41,7 @@ func (r *Runtime) UnmarshalJSON(json []byte) error {
 	if err != nil {
 		return ErrInvalidRuntimeFormat
 	}
-	
+
 	*r = Runtime(runtime)
 
 	return nil

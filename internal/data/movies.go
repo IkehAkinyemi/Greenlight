@@ -9,19 +9,19 @@ import (
 	"github.com/lib/pq"
 )
 
-//MovieModel wraps the sql.DB connection pool.
+// MovieModel wraps the sql.DB connection pool.
 type MovieModel struct {
 	DB *sql.DB
 }
 
 type Movie struct {
-	ID int64 `json:"id"`
-	Title string `json:"title"`
+	ID        int64     `json:"id"`
+	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"-"`
-	Version int32 `json:"version"`
-	Runtime Runtime `json:"runtime,omitempty"`
-	Genres []string `json:"genre,omitempty"`
-	Year int32 `json:"year,omitempty"`
+	Version   int32     `json:"version"`
+	Runtime   Runtime   `json:"runtime,omitempty"`
+	Genres    []string  `json:"genre,omitempty"`
+	Year      int32     `json:"year,omitempty"`
 }
 
 // Insert inserts a new movie record into the movies table.
@@ -72,12 +72,41 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 
 // Update updates a record with the movie arg passed.
 func (m MovieModel) Update(movie *Movie) error {
-	return nil
+	stmt := `
+	UPDATE movies
+	SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
+	WHERE id = $5
+	RETURNING version`
+
+	args := []interface{}{
+		&movie.Title,
+		&movie.Year,
+		&movie.Runtime,
+		pq.Array(&movie.Genres),
+		&movie.ID,
+	}
+
+	return m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
 }
 
 // Delete deletes a specific movie record with the id
 func (m MovieModel) Delete(id int64) error {
-	return nil
+	stmt := `DELETE FROM movies WHERE id = $1`
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+
+	resp, err := m.DB.Exec(stmt, id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := resp.RowsAffected()
+	if rows == 0 {
+		return ErrRecordNotFound
+	}
+
+	return err
 }
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {

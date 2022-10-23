@@ -98,6 +98,6 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	if err != io.EOF {
 		return errors.New("body must contain only a single JSON")
 	}
-	
+
 	return nil
 }
