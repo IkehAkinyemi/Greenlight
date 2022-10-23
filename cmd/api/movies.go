@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/Greenlight/internal/data"
 	"github.com/Greenlight/internal/validator"
@@ -18,13 +18,15 @@ func (app *application) showMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movie := data.Movie{
-		ID: id,
-		Title: "Halloween",
-		Runtime: 120,
-		CreatedAt: time.Now(),
-		Version: 1,
-		Genres: []string{"rom-com", "horror", "sci-fi"},
+	movie, err := app.models.Movies.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
