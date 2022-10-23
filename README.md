@@ -1,1 +1,1 @@
-# Greenlight API
+# Lighten API service
