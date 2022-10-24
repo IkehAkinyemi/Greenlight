@@ -1,4 +1,4 @@
-module github.com/Greenlight
+module github.com/lighten
 
 go 1.19
 

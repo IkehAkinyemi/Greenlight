@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/Greenlight/internal/data"
 	_ "github.com/lib/pq"
+	"github.com/lighten/internal/data"
 )
 
 const version = "1.0.0"

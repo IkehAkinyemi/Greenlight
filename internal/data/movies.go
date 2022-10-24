@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
-	"github.com/Greenlight/internal/validator"
 	"github.com/lib/pq"
+	"github.com/lighten/internal/validator"
 )
 
 // MovieModel wraps the sql.DB connection pool.
@@ -46,7 +47,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	}
 
 	stmt := `
-		SELECT pg_sleep(10), id, title, created_at, version, runtime, genres, year 
+		SELECT id, title, created_at, version, runtime, genres, year 
 		FROM movies
 		WHERE id = $1
 	`
@@ -56,7 +57,6 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	var movie Movie
 
 	err := m.DB.QueryRowContext(ctx, stmt, id).Scan(
-		&[]byte{},
 		&movie.ID,
 		&movie.Title,
 		&movie.CreatedAt,
@@ -78,6 +78,56 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	return &movie, nil
 }
 
+// GetAll gets all the movie record that's matched by the query_string.
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	stmt := fmt.Sprintf(
+		`
+		SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version 
+		FROM movies 
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+		AND (genres @> $2 OR $2 = '{}')
+		ORDER BY %s %s, id ASC 
+		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{title, pq.Array(genres), filters.limit(), filters.offset()}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, stmt, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	movies := []*Movie{}
+
+	for rows.Next() {
+		var movie Movie
+		err := rows.Scan(
+			&totalRecords,
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		movies = append(movies, &movie)
+	}
+
+	if rows.Err() != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calcMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return movies, metadata, nil
+}
+
 // Update updates a record with the movie arg passed.
 func (m MovieModel) Update(movie *Movie) error {
 	stmt := `
@@ -87,12 +137,12 @@ func (m MovieModel) Update(movie *Movie) error {
 	RETURNING version`
 
 	args := []interface{}{
-		&movie.Title,
-		&movie.Year,
-		&movie.Runtime,
-		pq.Array(&movie.Genres),
-		&movie.ID,
-		&movie.Version,
+		movie.Title,
+		movie.Year,
+		movie.Runtime,
+		pq.Array(movie.Genres),
+		movie.ID,
+		movie.Version,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

@@ -43,11 +43,13 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 }
 
+// failedValidationResponse reports errors from JSON validation
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
 
-func (app *application) editConflict(w http.ResponseWriter, r *http.Request) {
+// editConflictResponse reports edit conflict, like data race.
+func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Request) {
 	msg := "unable to update the record due to an edit conflict, please try again"
 	app.errorResponse(w, r, http.StatusConflict, msg)
 

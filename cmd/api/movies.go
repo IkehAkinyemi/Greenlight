@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Greenlight/internal/data"
-	"github.com/Greenlight/internal/validator"
+	"github.com/lighten/internal/data"
+	"github.com/lighten/internal/validator"
 )
 
 // showMovie maps to the "GET /v1/movies/:id" endpoint.
@@ -80,6 +80,7 @@ func (app *application) createMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updateMovie maps to the "PATCH /v1/movies/:id" endpoint.
 func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 	id, err := app.retrieveIDParam(r)
 	if err != nil {
@@ -88,7 +89,7 @@ func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	movie, err := app.models.Movies.Get(id)
-	if err != err {
+	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
@@ -138,7 +139,7 @@ func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrEditConflict):
-			app.editConflict(w, r)
+			app.editConflictResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -151,6 +152,7 @@ func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// deleteMovie maps to the "DELETE /v1/movies/:id" endpoint.
 func (app *application) deleteMovie(w http.ResponseWriter, r *http.Request) {
 	id, err := app.retrieveIDParam(r)
 	if err != nil {
@@ -168,6 +170,44 @@ func (app *application) deleteMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": "movie deleted successfully"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// listMovies maps to the "GET /v1/movies?<query_string>" endpoint.
+func (app *application) listMovies(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Title  string
+		Genres []string
+		data.Filters
+	}
+
+	queryStr := r.URL.Query()
+
+	v := validator.New()
+
+	input.Title = app.readStr(queryStr, "title", "")
+	input.Genres = app.readCSV(queryStr, "genres", []string{})
+
+	input.Page = app.readInt(queryStr, "page", 1, v)
+	input.PageSize = app.readInt(queryStr, "page_size", 20, v)
+
+	input.Sort = app.readStr(queryStr, "sort", "id")
+	input.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	movies, metadata, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"metadata": metadata, "movies": movies}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

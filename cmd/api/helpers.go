@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/lighten/internal/validator"
 )
 
 // envelope wraps the JSON response.
@@ -100,4 +102,35 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	}
 
 	return nil
+}
+
+func (app *application) readStr(queryStr url.Values, key, defaultValue string) string {
+	str := queryStr.Get(key)
+	if str == "" {
+		return defaultValue
+	}
+	return str
+}
+
+func (app *application) readCSV(queryStr url.Values, key string, defaultSlice []string) []string {
+	csv := queryStr.Get(key)
+
+	if csv == "" {
+		return defaultSlice
+	}
+	return strings.Split(csv, ",")
+}
+
+func (app *application) readInt(queryStr url.Values, key string, defaultValue int, v *validator.Validator) int {
+	str := queryStr.Get(key)
+	if str == "" {
+		return defaultValue
+	}
+	intValue, err := strconv.Atoi(str)
+	if err != nil {
+		v.AddError(key, "must be an integer")
+		return defaultValue
+	}
+
+	return intValue
 }
