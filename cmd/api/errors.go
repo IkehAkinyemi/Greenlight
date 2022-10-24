@@ -8,7 +8,10 @@ import (
 // The logError method is a generic helper for logging an error message and
 // additional information from the request including the HTTP method and URL.
 func (app *application) logError(r *http.Request, err error) {
-	app.logger.Println(err)
+	app.logger.PrintError(err, map[string]string{
+		"request_method": r.Method,
+		"request_url": r.URL.String(),
+	})
 }
 
 // serverErrorResponse() method reports runtime errors/problems.
