@@ -99,10 +99,10 @@ func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input struct {
-		Title   string       `json:"title"`
-		Year    int32        `json:"year"`
-		Runtime data.Runtime `json:"runtime"`
-		Genres  []string     `json:"genres"`
+		Title   *string       `json:"title"`
+		Year    *int32        `json:"year"`
+		Runtime *data.Runtime `json:"runtime"`
+		Genres  []string      `json:"genres"`
 	}
 	err = app.readJSON(w, r, &input)
 	if err != nil {
@@ -110,10 +110,22 @@ func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movie.Title = input.Title
-	movie.Year = input.Year
-	movie.Runtime = input.Runtime
-	movie.Genres = input.Genres
+	// If the input.Title value is nil then know that no corresponding "title" key/
+	// value pair was provided in the JSON request body (likewise other fields).
+	// This differentiate the Go zero-value behaviour for missing fields.
+	// So we move on and leave the movie record unchanged.
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+	if input.Genres != nil {
+		movie.Genres = input.Genres
+	}
 
 	v := validator.New()
 
@@ -124,7 +136,12 @@ func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 
 	err = app.models.Movies.Update(movie)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflict(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

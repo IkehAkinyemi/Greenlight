@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -32,7 +33,10 @@ func (m MovieModel) Insert(movie *Movie) error {
 		RETURNING id, created_at, version`
 	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
 
-	return m.DB.QueryRow(stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
 // Get fetches a specific movie record with the id
@@ -42,13 +46,17 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	}
 
 	stmt := `
-		SELECT id, title, created_at, version, runtime, genres, year 
+		SELECT pg_sleep(10), id, title, created_at, version, runtime, genres, year 
 		FROM movies
 		WHERE id = $1
 	`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	var movie Movie
 
-	err := m.DB.QueryRow(stmt, id).Scan(
+	err := m.DB.QueryRowContext(ctx, stmt, id).Scan(
+		&[]byte{},
 		&movie.ID,
 		&movie.Title,
 		&movie.CreatedAt,
@@ -75,7 +83,7 @@ func (m MovieModel) Update(movie *Movie) error {
 	stmt := `
 	UPDATE movies
 	SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
-	WHERE id = $5
+	WHERE id = $5 AND version = $6
 	RETURNING version`
 
 	args := []interface{}{
@@ -84,9 +92,22 @@ func (m MovieModel) Update(movie *Movie) error {
 		&movie.Runtime,
 		pq.Array(&movie.Genres),
 		&movie.ID,
+		&movie.Version,
 	}
 
-	return m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+	return nil
 }
 
 // Delete deletes a specific movie record with the id
@@ -96,7 +117,10 @@ func (m MovieModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 
-	resp, err := m.DB.Exec(stmt, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	resp, err := m.DB.ExecContext(ctx, stmt, id)
 	if err != nil {
 		return err
 	}
