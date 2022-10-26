@@ -137,3 +137,16 @@ func (app *application) readInt(queryStr url.Values, key string, defaultValue in
 
 	return intValue
 }
+
+// The background() helper accepts an arbitrary function as a parameter.
+func (app *application) backgroundJob(fn func()) {
+	go func ()  {
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+
+		fn()
+	}()
+}

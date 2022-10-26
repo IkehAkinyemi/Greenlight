@@ -1,0 +1,30 @@
+{{define "subject"}}Welcome to Lighten API{{end}}
+
+{{define "plainBody"}}
+Hello friend,
+
+Thanks for signing up for a Lighten account. We're excited to have you, welcome to the family!
+
+For future reference, your user ID number is {{.ID}}.
+
+Thanks,
+The Lighten API Team
+{{end}}
+
+{{define "htmlBody"}}
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+
+  <body>
+    <p>Hello friend,</p>
+    <p>Thanks for signing up for a Lighten account. We're excited to have you, welcome to the family!</p>
+    <p>For future reference, your user ID number is {{.ID}}.</p>
+    <p>Thanks,</p>
+    <p>The Lighten API Team</p>
+  </body>
+</html>
+{{end}}

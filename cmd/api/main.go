@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/lighten/internal/data"
 	"github.com/lighten/internal/jsonlog"
+	"github.com/lighten/internal/mailer"
 )
 
 const version = "1.0.0"
@@ -29,6 +30,13 @@ type config struct {
 		burst int
 		enabled bool
 	}
+	smtp struct {
+		host string
+		port int
+		username string
+		password string
+		sender string
+	}
 }
 
 // Holds the application logic and dependencies
@@ -36,6 +44,7 @@ type application struct {
 	logger *jsonlog.Logger
 	config config
 	models data.Models
+	mailer mailer.Mailer
 }
 
 // openDB opens a connection pool
@@ -67,15 +76,26 @@ func openDB(cfg config) (*sql.DB, error) {
 
 func main() {
 	var cfg config
+
 	flag.IntVar(&cfg.port, "port", 4000, "Set port value")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development/staging/environment)")
+
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("LIGHTEN_DB_DSN"), "PostgreSQL DSN")
+
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max idle connections time")
+
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
+
+	flag.StringVar(&cfg.smtp.host, "stmp-host", "smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "bf839073e4735b", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "d042a0e11033ca", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Lighten API <no-reply@lighten.api.net>", "SMTP sender")
+
 	flag.Parse()
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
@@ -92,6 +112,7 @@ func main() {
 		logger: logger,
 		config: cfg,
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	err = app.serve()
