@@ -28,6 +28,8 @@ func (f Filters) sortColumn() string {
 	panic("unsafe sort parameter: " + f.Sort)
 }
 
+// sortDirection intructs a descending or ascending 
+// order for 'GET /v1/movies?<query_string>'
 func (f Filters) sortDirection() string {
 	if strings.HasPrefix(f.Sort, "-") {
 		return "DESC"
@@ -54,6 +56,8 @@ func ValidateFilters(v *validator.Validator, f Filters) {
 	v.Check(validator.In(f.Sort, f.SortSafelist...), "sort", "invalid sort value")
 }
 
+// Provides extra info about the filtered, sorted and paginated 
+// info returned on 'GET /v1/movies?<query_string>'
 type Metadata struct {
 	CurrentPage int `json:"current_page,omitempty"`
 	PageSize int `json:"page_size,omitempty"`
@@ -62,6 +66,7 @@ type Metadata struct {
 	TotalRecords int `json:"total_records,omitempty"`
 }
 
+// calcMetadata calculates and return pagination info
 func calcMetadata(totalRecords, page, pageSize int) Metadata {
 	if totalRecords == 0 {
 		return Metadata{}

@@ -14,6 +14,7 @@ import (
 
 const version = "1.0.0"
 
+// Holds configuration values
 type config struct {
 	port int
 	env  string
@@ -30,6 +31,7 @@ type config struct {
 	}
 }
 
+// Holds the application logic and dependencies
 type application struct {
 	logger *jsonlog.Logger
 	config config

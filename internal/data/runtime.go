@@ -24,6 +24,7 @@ func (r Runtime) MarshalJSON() ([]byte, error) {
 	return []byte(validJSON), nil
 }
 
+// UnmarshalJSON satisfies the json.UnmarshalJSON interface
 func (r *Runtime) UnmarshalJSON(json []byte) error {
 	// runtime json value is of format "<runtime mins>"
 	value, err := strconv.Unquote(string(json))

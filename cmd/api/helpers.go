@@ -104,6 +104,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	return nil
 }
 
+// readStr reads/parses the query string for a key's value
 func (app *application) readStr(queryStr url.Values, key, defaultValue string) string {
 	str := queryStr.Get(key)
 	if str == "" {
@@ -112,6 +113,7 @@ func (app *application) readStr(queryStr url.Values, key, defaultValue string) s
 	return str
 }
 
+// readCSV parses the csv-like values provide in the query string
 func (app *application) readCSV(queryStr url.Values, key string, defaultSlice []string) []string {
 	csv := queryStr.Get(key)
 
@@ -121,6 +123,7 @@ func (app *application) readCSV(queryStr url.Values, key string, defaultSlice []
 	return strings.Split(csv, ",")
 }
 
+// readInt parses integer values provided through the query string
 func (app *application) readInt(queryStr url.Values, key string, defaultValue int, v *validator.Validator) int {
 	str := queryStr.Get(key)
 	if str == "" {

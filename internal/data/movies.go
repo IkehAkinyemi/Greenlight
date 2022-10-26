@@ -183,6 +183,7 @@ func (m MovieModel) Delete(id int64) error {
 	return err
 }
 
+// ValidateMovie sanity-checks the movie JSON values provided.
 func ValidateMovie(v *validator.Validator, movie *Movie) {
 	v.Check(movie.Title != "", "title", "must be provided")
 	v.Check(len(movie.Title) <= 500, "title", "must not be more than 500 bytes long")
