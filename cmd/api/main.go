@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -45,6 +46,7 @@ type application struct {
 	config config
 	models data.Models
 	mailer mailer.Mailer
+	wg sync.WaitGroup
 }
 
 // openDB opens a connection pool
