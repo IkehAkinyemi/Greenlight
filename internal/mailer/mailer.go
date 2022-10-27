@@ -27,6 +27,7 @@ func New(host string, port int, username, password, sender string) Mailer {
 	}
 }
 
+// Send sends an email template to a user, "recipient".
 func (m Mailer) Send(recipient, templateFile string, data interface{}) error {
 	tmpl, err := template.New("email").ParseFS(templateFS, "templates/"+templateFile)
 	if err != nil {
