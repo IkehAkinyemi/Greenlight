@@ -13,14 +13,15 @@ import (
 
 const (
 	ScopeActivation = "activation"
+	ScopeAuthentication = "authentication"
 )
 
 type Token struct {
-	Plaintext string
-	Hash []byte
-	UserID int64
-	Expiry time.Time
-	Scope string
+	Plaintext string `json:"token"`
+	Hash []byte `json:"-"`
+	UserID int64 `json:"-"`
+	Expiry time.Time `json:"expiry"`
+	Scope string `json:"-"`
 }
 
 // generateToken cryptographically secure random value for user activation
@@ -56,7 +57,6 @@ type TokenModel struct {
 	DB *sql.DB
 }
 
-// New 
 func (m *TokenModel) New(userID int64, lifeSpan time.Duration, scope string) (*Token, error) {
 	token, err := generateToken(userID, lifeSpan, scope)
 	if err != nil {
