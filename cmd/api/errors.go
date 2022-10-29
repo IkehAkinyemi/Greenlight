@@ -22,7 +22,7 @@ func (app *application) serverErrorResponse(w http.ResponseWriter, r *http.Reque
 }
 
 func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request) {
-	msg := "the requested resourcec could not be found"
+	msg := "the requested resource could not be found"
 	app.errorResponse(w, r, http.StatusNotFound, msg)
 }
 
@@ -58,13 +58,22 @@ func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Requ
 
 }
 
-// rateLimitExceededResponse reports rate limiting error
+// rateLimitExceededResponse reports rate limiting errors.
 func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request) {
 	msg := "rate limit exceeded"
 	app.errorResponse(w, r, http.StatusTooManyRequests, msg)
 }
 
+// invalidCredentialResponse reports user authentication errors.
 func (app *application) invalidCredentialResponse(w http.ResponseWriter, r *http.Request) {
 	msg := "invalid authentication credentials"
+	app.errorResponse(w, r, http.StatusUnauthorized, msg)
+}
+
+// invalidAuthenticationTokenResponse reports user authentication errors in regards to token
+func (app *application) invalidAuthenticationTokenResponse(w http.ResponseWriter, r *http.Request) {
+	// Keeps a reminder for the client about the bearer token
+	w.Header().Add("WWW-Authentication", "Bearer")
+	msg := "invalid or missing authentication token"
 	app.errorResponse(w, r, http.StatusUnauthorized, msg)
 }
