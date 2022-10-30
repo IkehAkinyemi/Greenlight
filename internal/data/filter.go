@@ -28,7 +28,7 @@ func (f Filters) sortColumn() string {
 	panic("unsafe sort parameter: " + f.Sort)
 }
 
-// sortDirection intructs a descending or ascending 
+// sortDirection intructs a descending or ascending
 // order for 'GET /v1/movies?<query_string>'
 func (f Filters) sortDirection() string {
 	if strings.HasPrefix(f.Sort, "-") {
@@ -56,13 +56,13 @@ func ValidateFilters(v *validator.Validator, f Filters) {
 	v.Check(validator.In(f.Sort, f.SortSafelist...), "sort", "invalid sort value")
 }
 
-// Provides extra info about the filtered, sorted and paginated 
+// Provides extra info about the filtered, sorted and paginated
 // info returned on 'GET /v1/movies?<query_string>'
 type Metadata struct {
-	CurrentPage int `json:"current_page,omitempty"`
-	PageSize int `json:"page_size,omitempty"`
-	FirstPage int `json:"first_page,omitempty"`
-	LastPage int `json:"last_page,omitempty"`
+	CurrentPage  int `json:"current_page,omitempty"`
+	PageSize     int `json:"page_size,omitempty"`
+	FirstPage    int `json:"first_page,omitempty"`
+	LastPage     int `json:"last_page,omitempty"`
 	TotalRecords int `json:"total_records,omitempty"`
 }
 
@@ -73,10 +73,10 @@ func calcMetadata(totalRecords, page, pageSize int) Metadata {
 	}
 
 	return Metadata{
-		CurrentPage: page,
-		PageSize: pageSize,
-		FirstPage: 1,
-		LastPage: int(math.Ceil(float64(totalRecords) / float64(pageSize))),
+		CurrentPage:  page,
+		PageSize:     pageSize,
+		FirstPage:    1,
+		LastPage:     int(math.Ceil(float64(totalRecords) / float64(pageSize))),
 		TotalRecords: totalRecords,
 	}
 }

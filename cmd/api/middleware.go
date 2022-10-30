@@ -16,8 +16,8 @@ import (
 
 // recoverPanic graciouly recovers any panic within the goroutine handling the request
 func (app *application) recoverPanic(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
-		defer func ()  {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
 			if err := recover(); err != nil {
 				w.Header().Set("Connection", "close")
 				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
@@ -32,11 +32,11 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 func (app *application) rateLimit(next http.Handler) http.Handler {
 	type client struct {
 		lastSeen time.Time
-		limiter *rate.Limiter
+		limiter  *rate.Limiter
 	}
 
 	var (
-		mu sync.Mutex
+		mu      sync.Mutex
 		clients = make(map[string]*client)
 	)
 
@@ -47,7 +47,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 			mu.Lock()
 
 			for ip, client := range clients {
-				if time.Since(client.lastSeen) > 3 * time.Minute {
+				if time.Since(client.lastSeen) > 3*time.Minute {
 					delete(clients, ip)
 				}
 			}
@@ -56,39 +56,39 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		}
 	}()
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)  {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if app.config.limiter.enabled {
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-
-		mu.Lock()
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{
-				limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
 			}
-		}
-		
-		clients[ip].lastSeen = time.Now()
 
-		if !clients[ip].limiter.Allow() {
+			mu.Lock()
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
+				}
+			}
+
+			clients[ip].lastSeen = time.Now()
+
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w, r)
+				return
+			}
 			mu.Unlock()
-			app.rateLimitExceededResponse(w, r)
-			return
-		}
-		mu.Unlock()
 		}
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-// 
-func (app *application) authenticate(next http.Handler) http.Handler{
+// authenticate helps know who the user is through their 'Bearer <token>'.
+func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// This indicates to any caches that the response may 
+		// This indicates to any caches that the response may
 		// vary based on the value of Authorization.
 		w.Header().Set("Vary", "Authorization")
 
@@ -106,17 +106,17 @@ func (app *application) authenticate(next http.Handler) http.Handler{
 			return
 		}
 		token := tokenParts[1]
-		
+
 		v := validator.New()
 		if data.ValidateTokenPlaintext(v, token); !v.Valid() {
 			app.invalidAuthenticationTokenResponse(w, r)
 			return
 		}
 
-		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token) 
+		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
 		if err != nil {
 			switch {
-			case  errors.Is(err, data.ErrRecordNotFound):
+			case errors.Is(err, data.ErrRecordNotFound):
 				app.invalidAuthenticationTokenResponse(w, r)
 			default:
 				app.serverErrorResponse(w, r, err)
@@ -128,4 +128,55 @@ func (app *application) authenticate(next http.Handler) http.Handler{
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// requiredAuthenticatedUser controls access to restricted endpoints – Authorization
+func (app *application) requiredAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+
+		if user.IsAnonymous() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// requireActivatedUser controls access to endpoints based on if user is activated or not.
+func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+
+	return app.requiredAuthenticatedUser(fn)
+}
+
+func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+
+		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		if !permissions.Include(code) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+
+	return app.requireActivatedUser(fn)
 }

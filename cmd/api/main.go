@@ -27,16 +27,16 @@ type config struct {
 		maxIdleTime  string
 	}
 	limiter struct {
-		rps float64
-		burst int
+		rps     float64
+		burst   int
 		enabled bool
 	}
 	smtp struct {
-		host string
-		port int
+		host     string
+		port     int
 		username string
 		password string
-		sender string
+		sender   string
 	}
 }
 
@@ -46,7 +46,7 @@ type application struct {
 	config config
 	models data.Models
 	mailer mailer.Mailer
-	wg sync.WaitGroup
+	wg     sync.WaitGroup
 }
 
 // openDB opens a connection pool

@@ -17,7 +17,7 @@ func (app *application) serve() error {
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", app.config.port),
 		Handler:      app.routes(),
-		ErrorLog: log.New(app.logger, "", 0),
+		ErrorLog:     log.New(app.logger, "", 0),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -26,17 +26,17 @@ func (app *application) serve() error {
 	shutdownErr := make(chan error)
 
 	// Background job to listen for any shutdown signal
-	go func ()  {
+	go func() {
 		quit := make(chan os.Signal, 1)
 
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		s := <- quit
+		s := <-quit
 
-		app.logger.PrintInfo("shutting down server", map[string]string {
+		app.logger.PrintInfo("shutting down server", map[string]string{
 			"signal": s.String(),
 		})
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		err := server.Shutdown(ctx)
@@ -53,7 +53,7 @@ func (app *application) serve() error {
 	}()
 
 	app.logger.PrintInfo("starting server", map[string]string{
-		"env": app.config.env, 
+		"env":  app.config.env,
 		"addr": server.Addr,
 	})
 
@@ -62,7 +62,7 @@ func (app *application) serve() error {
 		return err
 	}
 
-	err = <- shutdownErr
+	err = <-shutdownErr
 	if err != nil {
 		return err
 	}

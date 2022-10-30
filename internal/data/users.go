@@ -13,22 +13,22 @@ import (
 
 var (
 	ErrDuplicateEmail = errors.New("duplicate email")
-	AnonymousUser = &User{}
+	AnonymousUser     = &User{}
 )
 
 type User struct {
-	ID int64 `json:"id"`
+	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	Name string `json:"name"`
-	Email string `json:"email"`
-	Password password `json:"-"`
-	Activated bool `json:"activated"`
-	Version int `json:"-"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Password  password  `json:"-"`
+	Activated bool      `json:"activated"`
+	Version   int       `json:"-"`
 }
 
 type password struct {
 	plaintext *string
-	hash []byte
+	hash      []byte
 }
 
 // IsAnonymous checks if a User instance is the AnonymousUser.
@@ -36,7 +36,7 @@ func (u *User) IsAnonymous() bool {
 	return u == AnonymousUser
 }
 
-// Set() method calculates the bcrypt hash of a plaintext password, and stores both 
+// Set() method calculates the bcrypt hash of a plaintext password, and stores both
 // the hash and the plaintext versions in the struct.
 func (p *password) Set(plaintextPassword string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
@@ -51,7 +51,7 @@ func (p *password) Set(plaintextPassword string) error {
 	return nil
 }
 
-// Matches() method checks whether the provided plaintext password matches the 
+// Matches() method checks whether the provided plaintext password matches the
 // hashed password stored in the struct, returning true if it matches and false
 // otherwise.
 func (p *password) Matches(plaintextPassword string) (bool, error) {
@@ -110,7 +110,7 @@ func (m UserModel) Insert(user *User) error {
 	RETURNING id, created_at, version`
 
 	args := []interface{}{user.Name, user.Email, user.Password.hash, user.Activated}
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
@@ -135,7 +135,7 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 
 	var user User
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	err := m.DB.QueryRowContext(ctx, stmt, email).Scan(
@@ -176,7 +176,7 @@ func (m UserModel) Update(user *User) error {
 		user.Version,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(&user.Version)
@@ -208,7 +208,7 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 
 	var user User
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(

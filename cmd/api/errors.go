@@ -10,7 +10,7 @@ import (
 func (app *application) logError(r *http.Request, err error) {
 	app.logger.PrintError(err, map[string]string{
 		"request_method": r.Method,
-		"request_url": r.URL.String(),
+		"request_url":    r.URL.String(),
 	})
 }
 
@@ -76,4 +76,21 @@ func (app *application) invalidAuthenticationTokenResponse(w http.ResponseWriter
 	w.Header().Add("WWW-Authentication", "Bearer")
 	msg := "invalid or missing authentication token"
 	app.errorResponse(w, r, http.StatusUnauthorized, msg)
+}
+
+// authenticationRequiredResponse reports error relating to token-based authentation.
+func (app *application) authenticationRequiredResponse(w http.ResponseWriter, r *http.Request) {
+	msg := "you must be authenticated to access this resource"
+	app.errorResponse(w, r, http.StatusUnauthorized, msg)
+}
+
+// inactiveAccountResponse reports error if user is not activated yet.
+func (app *application) inactiveAccountResponse(w http.ResponseWriter, r *http.Request) {
+	msg := "your user account must be activated to access this resource"
+	app.errorResponse(w, r, http.StatusForbidden, msg)
+}
+
+func (app *application) notPermittedResponse(w http.ResponseWriter, r *http.Request) {
+	msg := "your user account doesn't have the necessary permissions to access this resource"
+	app.errorResponse(w, r, http.StatusForbidden, msg)
 }

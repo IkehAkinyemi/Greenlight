@@ -12,8 +12,8 @@ import (
 // registerUser maps to the "POST /v1/users" endpoint.
 func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name string `json:"name"`
-		Email string `json:"email"`
+		Name     string `json:"name"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
@@ -24,8 +24,8 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &data.User{
-		Name: input.Name,
-		Email: input.Email,
+		Name:      input.Name,
+		Email:     input.Email,
 		Activated: false,
 	}
 
@@ -53,18 +53,25 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	err = app.models.Permissions.AddForUser(user.ID, "movies:read")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	token, err := app.models.Tokens.New(user.ID, 3*24*time.Hour, data.ScopeActivation)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	// Use backgroundJob helper to execute an anonymous function that sends the welcome 
+	// Use backgroundJob helper to execute an anonymous function that sends the welcome
 	// email.
 	app.backgroundJob(func() {
 		data := map[string]interface{}{
 			"activationToken": token.Plaintext,
-			"userID": user.ID,
+			"userID":          user.ID,
 		}
 
 		err = app.mailer.Send(user.Email, "user_welcome.tmpl", data)
@@ -81,7 +88,7 @@ func (app *application) registerUser(w http.ResponseWriter, r *http.Request) {
 
 // activateUser maps to 'PUT /v1/users/activated'
 func (app *application) activateUser(w http.ResponseWriter, r *http.Request) {
-	var input struct{
+	var input struct {
 		TokenPlaintext string `json:"token"`
 	}
 

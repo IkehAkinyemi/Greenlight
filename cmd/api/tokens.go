@@ -12,7 +12,7 @@ import (
 // createAuthentication maps to the POST /v1/tokens/authentication endpoint.
 func (app *application) createAuthentication(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 

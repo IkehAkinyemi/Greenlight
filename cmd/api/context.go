@@ -9,7 +9,7 @@ import (
 
 type contextKey string
 
-var usercontextKey =  contextKey("user")
+var usercontextKey = contextKey("user")
 
 func (app *application) contextSetUser(r *http.Request, user *data.User) *http.Request {
 	ctx := context.WithValue(r.Context(), usercontextKey, user)

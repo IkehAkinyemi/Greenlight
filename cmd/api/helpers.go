@@ -142,9 +142,9 @@ func (app *application) readInt(queryStr url.Values, key string, defaultValue in
 func (app *application) backgroundJob(fn func()) {
 	app.wg.Add(1)
 
-	go func ()  {
+	go func() {
 		defer app.wg.Done()
-		
+
 		defer func() {
 			if err := recover(); err != nil {
 				app.logger.PrintError(fmt.Errorf("%s", err), nil)
