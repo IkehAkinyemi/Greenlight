@@ -160,6 +160,7 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	return app.requiredAuthenticatedUser(fn)
 }
 
+// requirePermission checks if a user is authorized to access a particular resource.
 func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
@@ -179,4 +180,33 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	}
 
 	return app.requireActivatedUser(fn)
+}
+
+// enableCORS enables cross-site requests for web user-agents.
+func (app *application) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Vary", "Origin")
+		w.Header().Set("Vary", "Access-Control-Request-Method")
+
+		origin := r.Header.Get("Origin")
+
+		// Preflight 
+		if origin != "" && len(app.config.cors.trustedOrigins) != 0 {
+			for _, v := range app.config.cors.trustedOrigins {
+				if origin == v {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+						
+						w.WriteHeader(http.StatusOK)
+						return
+					}
+				}
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

@@ -193,7 +193,7 @@ func (m UserModel) Update(user *User) error {
 
 	return nil
 }
-
+// GetForToken retrieves a user record associated to a token.
 func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error) {
 	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
 
