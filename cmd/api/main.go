@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -17,7 +18,10 @@ import (
 	"github.com/lighten/internal/mailer"
 )
 
-const version = "1.0.0"
+var (
+	buildTime string
+	version string
+)
 
 // Holds configuration values
 type config struct {
@@ -105,13 +109,22 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "d042a0e11033ca", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Lighten API <no-reply@lighten.api.net>", "SMTP sender")
 
-	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func (flagValue string) error  {
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(flagValue string) error {
 		cfg.cors.trustedOrigins = strings.Fields(flagValue)
 
 		return nil
 	})
 
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		fmt.Printf("Build time:\t%s\n", buildTime)
+		
+		os.Exit(0)
+	}
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 

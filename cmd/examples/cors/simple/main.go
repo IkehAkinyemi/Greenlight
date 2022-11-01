@@ -41,6 +41,6 @@ func main() {
 	err := http.ListenAndServe(*addr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(html))
 	}))
-	
+
 	log.Fatal(err)
 }
