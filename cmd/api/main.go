@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -81,6 +83,7 @@ func openDB(cfg config) (*sql.DB, error) {
 }
 
 func main() {
+	// command-line configurations
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 4000, "Set port value")
@@ -119,6 +122,19 @@ func main() {
 	}
 	logger.PrintInfo("database connection pool established", nil)
 	defer db.Close()
+
+	// Configuring metrics using expvar
+	expvar.NewString("version").Set(version)
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		// records the current Unix timestamp when metrics was taken
+		return time.Now().Unix()
+	}))
 
 	app := &application{
 		logger: logger,
