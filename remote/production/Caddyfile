@@ -4,7 +4,7 @@
 	email mrikehchukwuka@gmail.com
 }
 
-ikehakinyemi.net {
+lighten.ikehakinyemi.net {
 	respond /v1/metrics "Not Permitted" 403
 	reverse_proxy localhost:4000
 }
