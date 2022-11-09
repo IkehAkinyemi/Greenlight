@@ -1,2 +1,2 @@
-# Lighten API service
+# Lighten API service⚡️
 
